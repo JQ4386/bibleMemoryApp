@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
-function App() {
-  const [isRecording, setIsRecording] = useState(false);
+function Speech2Text() {
+    const [isRecording, setIsRecording] = useState(false);
   const [transcription, setTranscription] = useState('');
   const [transcriptionError, setTranscriptionError] = useState('');
   const [recognition, setRecognition] = useState(null);
@@ -74,7 +74,7 @@ function App() {
   };
 
   return (
-    <div>
+    <div className="speech-to-text-container">
       <header>
         <h1>Bible Verse Memory App</h1>
       </header>
@@ -104,5 +104,5 @@ function App() {
   );
 }
 
-export default App;
+export default Speech2Text;
 
