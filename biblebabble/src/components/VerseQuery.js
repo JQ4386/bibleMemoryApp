@@ -2,8 +2,16 @@ import React, { useState, useEffect } from "react";
 import bibleData from '../bible-versions/NASB95.json';
 import TrieSearch from "trie-search";
 
-// Mapping of book names to book numbers
-const bookMapping = {
+// Component for querying Bible verses
+function VerseQuery({ onVerseSelected }) {
+  const [book, setBook] = useState("");
+  const [reference, setReference] = useState("");
+  const [searchResult, setSearchResult] = useState([]);
+  const [suggestions, setSuggestions] = useState([]);
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(0);
+
+  // Mapping of book names to book numbers
+  const bookMapping = {
     "Genesis": 1, "Exodus": 2, "Leviticus": 3, "Numbers": 4, "Deuteronomy": 5,
     "Joshua": 6, "Judges": 7, "Ruth": 8, "1 Samuel": 9, "2 Samuel": 10,
     "1 Kings": 11, "2 Kings": 12, "1 Chronicles": 13, "2 Chronicles": 14,
@@ -21,49 +29,39 @@ const bookMapping = {
     "Jude": 65, "Revelation": 66
   };
 
-// TrieSearch is a library that allows for fast prefix searches.
-const booksTrie = new TrieSearch(["key"]);
-Object.keys(bookMapping).forEach((book) => booksTrie.add({ key: book }));
-
-// The VerseQuery component allows users to search for Bible verses.
-function VerseQuery() {
-  const [book, setBook] = useState("");
-  const [reference, setReference] = useState("");
-  const [searchResult, setSearchResult] = useState([]);
-  const [suggestions, setSuggestions] = useState([]);
-  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(0);
-
+  // Reset the active suggestion index when the suggestions change
   useEffect(() => {
     setActiveSuggestionIndex(0);
   }, [suggestions]);
 
-  // Function to handle search.
+  // Initialize the trie data structure for book name suggestions
+  const booksTrie = new TrieSearch(["key"]);
+  Object.keys(bookMapping).forEach((book) => booksTrie.add({ key: book }));
+
+  // Function to handle user search query
   const handleSearch = () => {
     const chapterOnlyRegex = /^(\d+)$/;
     const chapterAndVerseRegex = /(\d+):(\d+)(?:-(\d+))?/;
     let chapterInt, startVerseInt, endVerseInt;
-  
+
     if (chapterOnlyRegex.test(reference)) {
-      // Case 1: Chapter only
       chapterInt = parseInt(reference, 10);
       startVerseInt = null;
       endVerseInt = null;
     } else {
       const match = reference.match(chapterAndVerseRegex);
-  
+
       if (match) {
         chapterInt = parseInt(match[1], 10);
         startVerseInt = parseInt(match[2], 10);
-        endVerseInt = match[3] ? parseInt(match[3], 10) : startVerseInt; // Set endVerseInt to startVerseInt if no end verse is specified
+        endVerseInt = match[3] ? parseInt(match[3], 10) : startVerseInt;
       } else {
         console.log("Invalid search query");
         setSearchResult([]);
         return;
       }
     }
-  
-    console.log("Parsed values:", { chapterInt, startVerseInt, endVerseInt });
-  
+
     const bookNumber = bookMapping[book];
     let results = bibleData.filter((v) => {
       return v.book === bookNumber &&
@@ -71,12 +69,14 @@ function VerseQuery() {
              (!startVerseInt || v.verse >= startVerseInt) &&
              (!endVerseInt || v.verse <= endVerseInt);
     });
-  
-    console.log("Search results:", results);
+
     setSearchResult(results);
+    if (results.length > 0) {
+      onVerseSelected(results[0].text); // Call the callback function with the selected verse
+    }
   };
-  
-  // Function to handle book input change.
+
+  // Function to handle user input for book name
   const handleBookInputChange = (e) => {
     const inputVal = e.target.value;
     setBook(inputVal);
@@ -88,28 +88,25 @@ function VerseQuery() {
     }
   };
 
-  // Function to handle reference input change.
+  // Function to handle user input for chapter/verse references
   const handleReferenceChange = (e) => {
     setReference(e.target.value);
   };
 
-  // Function to handle key pressed events.
+  // Function to handle user keyboard input
   const onKeyDown = (e) => {
     if (e.keyCode === 13) {
-      // Enter key
       if (suggestions.length > 0) {
         setBook(suggestions[activeSuggestionIndex]);
         setSuggestions([]);
       }
     } else if (e.keyCode === 38) {
-      // Up arrow
       setActiveSuggestionIndex(
         activeSuggestionIndex === 0
           ? suggestions.length - 1
           : activeSuggestionIndex - 1
       );
     } else if (e.keyCode === 40) {
-      // Down arrow
       setActiveSuggestionIndex(
         activeSuggestionIndex === suggestions.length - 1
           ? 0
@@ -118,13 +115,13 @@ function VerseQuery() {
     }
   };
 
-  // Function to handle suggestion click.
+  // Function to handle user click on a suggestion
   const handleClick = (suggestion) => {
     setBook(suggestion);
     setSuggestions([]);
   };
 
-  // Component UI.
+  // Component UI
   return (
     <div className="verse-query-container">
       <h1>Bible Verse Search</h1>
@@ -159,9 +156,6 @@ function VerseQuery() {
         />
         <button onClick={handleSearch}>Search</button>
       </div>
-      <p>
-        <i>E.g. John 3:16, Romans 5:6-8, Psalms 1</i>
-      </p>
       <div>
         {searchResult.map((v) => (
           <p key={v.verse}>

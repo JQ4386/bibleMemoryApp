@@ -1,69 +1,66 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
-// The SemanticScorer component Allows users to compare semantic similarity between two sentences.
-function SemanticScorer() {
-    // State management for user input and results.
-    const [modelSentence, setModelSentence] = useState('');
-    const [comparisonSentence, setComparisonSentence] = useState('');
+// Component for scoring the similarity between two sentences
+function SemanticScorer({ modelSentence, comparisonSentence }) {
     const [similarityScore, setSimilarityScore] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    // Fetches similarity score from backend.
-    const fetchSimilarityScore = async () => {
-        try {
-            setLoading(true);
-            setError('');
-            const sentencesArray = [modelSentence, comparisonSentence].filter(line => line.trim() !== '');
+    // Fetch similarity score when modelSentence or comparisonSentence changes
+    useEffect(() => {
+        // Fetches similarity score from backend
+        const fetchSimilarityScore = async () => {
+            try {
+                setLoading(true);
+                setError('');
 
-            const response = await fetch('http://localhost:5001/embed', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ sentences: sentencesArray })
-            });
-            const data = await response.json();
-            setSimilarityScore(data.similarity_scores.length > 0 ? data.similarity_scores[0] : '');
-        } catch (err) {
-            setError(err.message);
-            setSimilarityScore('');
-        } finally {
-            setLoading(false);
+                // Convert sentences to lowercase
+                const lowerCaseModelSentence = modelSentence.toLowerCase();
+                const lowerCaseComparisonSentence = comparisonSentence.toLowerCase();
+
+                const sentencesArray = [lowerCaseModelSentence, lowerCaseComparisonSentence].filter(line => line.trim() !== '');
+
+                const response = await fetch('http://localhost:5001/embed', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ sentences: sentencesArray })
+                });
+                const data = await response.json();
+                if (data.similarity_scores && Array.isArray(data.similarity_scores)) {
+                    setSimilarityScore(data.similarity_scores.length > 0 ? data.similarity_scores[0] : '');
+                } else {
+                    setSimilarityScore('');
+                    setError('Similarity scores not found in response');
+                }
+            } catch (err) {
+                setError(err.message);
+                setSimilarityScore('');
+            } finally {
+                setLoading(false);
+            }
+        };
+        // Only fetch similarity score if both sentences are not empty 
+        if (modelSentence && comparisonSentence) {
+            fetchSimilarityScore();
         }
-    };
+    }, [modelSentence, comparisonSentence]); 
 
-    // Handles form submission.
-    const handleSubmit = (event) => {
-        event.preventDefault();
-        fetchSimilarityScore();
-    };
-
-    // Component UI.
+    // Component UI
     return (
         <div>
             <h2>Semantic Scorer</h2>
-            <form onSubmit={handleSubmit}>
+            <div>
                 <div>
                     <label>Model Sentence: </label>
-                    <input
-                        type="text"
-                        value={modelSentence}
-                        onChange={e => setModelSentence(e.target.value)}
-                        placeholder="Enter the model sentence"
-                    />
+                    <span>{modelSentence}</span> 
                 </div>
                 <div>
                     <label>Comparison Sentence: </label>
-                    <input
-                        type="text"
-                        value={comparisonSentence}
-                        onChange={e => setComparisonSentence(e.target.value)}
-                        placeholder="Enter a sentence to compare"
-                    />
+                    <span>{comparisonSentence}</span> 
                 </div>
-                <button type="submit" disabled={loading}>Get Similarity Score</button>
-            </form>
+            </div>
             {loading && <p>Loading...</p>}
             {error && <p style={{ color: 'red' }}>{error}</p>}
             <h3>Similarity Score:</h3>
