@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import bibleData from '../bible-versions/NASB95.json';
 import TrieSearch from "trie-search";
 
+// Mapping of book names to book numbers
 const bookMapping = {
     "Genesis": 1, "Exodus": 2, "Leviticus": 3, "Numbers": 4, "Deuteronomy": 5,
     "Joshua": 6, "Judges": 7, "Ruth": 8, "1 Samuel": 9, "2 Samuel": 10,
@@ -20,9 +21,11 @@ const bookMapping = {
     "Jude": 65, "Revelation": 66
   };
 
+// TrieSearch is a library that allows for fast prefix searches.
 const booksTrie = new TrieSearch(["key"]);
 Object.keys(bookMapping).forEach((book) => booksTrie.add({ key: book }));
 
+// The VerseQuery component allows users to search for Bible verses.
 function VerseQuery() {
   const [book, setBook] = useState("");
   const [reference, setReference] = useState("");
@@ -34,6 +37,7 @@ function VerseQuery() {
     setActiveSuggestionIndex(0);
   }, [suggestions]);
 
+  // Function to handle search.
   const handleSearch = () => {
     const chapterOnlyRegex = /^(\d+)$/;
     const chapterAndVerseRegex = /(\d+):(\d+)(?:-(\d+))?/;
@@ -72,8 +76,7 @@ function VerseQuery() {
     setSearchResult(results);
   };
   
-  
-  
+  // Function to handle book input change.
   const handleBookInputChange = (e) => {
     const inputVal = e.target.value;
     setBook(inputVal);
@@ -85,10 +88,12 @@ function VerseQuery() {
     }
   };
 
+  // Function to handle reference input change.
   const handleReferenceChange = (e) => {
     setReference(e.target.value);
   };
 
+  // Function to handle key pressed events.
   const onKeyDown = (e) => {
     if (e.keyCode === 13) {
       // Enter key
@@ -113,11 +118,13 @@ function VerseQuery() {
     }
   };
 
+  // Function to handle suggestion click.
   const handleClick = (suggestion) => {
     setBook(suggestion);
     setSuggestions([]);
   };
 
+  // Component UI.
   return (
     <div className="verse-query-container">
       <h1>Bible Verse Search</h1>
