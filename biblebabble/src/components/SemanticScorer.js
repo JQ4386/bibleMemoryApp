@@ -1,6 +1,18 @@
 import React, { useState, useEffect } from 'react';
 
-// Component for scoring the similarity between two sentences
+// Function to transform the similarity score to a percentage
+const final_combined_transform_score = (similarity_score) => {
+    if (similarity_score >= 0.997) {
+        return 100;
+    } else if (similarity_score >= 0.995) {
+        return 99;
+    } else if (similarity_score >= 0.9) {
+        return Math.round(50 + (Math.cbrt((similarity_score - 0.9) / 0.095)) * 49);
+    } else {
+        return Math.round(similarity_score * 50 / 0.9);
+    }
+};
+
 function SemanticScorer({ modelSentence, comparisonSentence }) {
     const [similarityScore, setSimilarityScore] = useState('');
     const [loading, setLoading] = useState(false);
@@ -20,6 +32,7 @@ function SemanticScorer({ modelSentence, comparisonSentence }) {
 
                 const sentencesArray = [lowerCaseModelSentence, lowerCaseComparisonSentence].filter(line => line.trim() !== '');
 
+                // Make a POST request to the server
                 const response = await fetch('http://localhost:5001/embed', {
                     method: 'POST',
                     headers: {
@@ -28,8 +41,12 @@ function SemanticScorer({ modelSentence, comparisonSentence }) {
                     body: JSON.stringify({ sentences: sentencesArray })
                 });
                 const data = await response.json();
+                // Check if similarity_scores is defined and is an array
                 if (data.similarity_scores && Array.isArray(data.similarity_scores)) {
-                    setSimilarityScore(data.similarity_scores.length > 0 ? data.similarity_scores[0] : '');
+                    const originalScore = data.similarity_scores.length > 0 ? data.similarity_scores[0] : '';
+                    console.log("Original vector score:", originalScore); // Logging the original vector score
+                    const transformedScore = final_combined_transform_score(originalScore);
+                    setSimilarityScore(transformedScore);
                 } else {
                     setSimilarityScore('');
                     setError('Similarity scores not found in response');
@@ -41,6 +58,7 @@ function SemanticScorer({ modelSentence, comparisonSentence }) {
                 setLoading(false);
             }
         };
+
         // Only fetch similarity score if both sentences are not empty 
         if (modelSentence && comparisonSentence) {
             fetchSimilarityScore();
@@ -54,18 +72,18 @@ function SemanticScorer({ modelSentence, comparisonSentence }) {
             <div>
                 <div>
                     <label>Model Sentence: </label>
-                    <span>{modelSentence}</span> 
+                    <span>{modelSentence}</span> {/* Display as plain text */}
                 </div>
                 <div>
                     <label>Comparison Sentence: </label>
-                    <span>{comparisonSentence}</span> 
+                    <span>{comparisonSentence}</span> {/* Display as plain text */}
                 </div>
             </div>
             {loading && <p>Loading...</p>}
             {error && <p style={{ color: 'red' }}>{error}</p>}
             <h3>Similarity Score:</h3>
             {similarityScore !== '' && (
-                <p><b>Similarity to model sentence:</b> {similarityScore}</p>
+                <p><b>Similarity to model sentence:</b> {similarityScore}%</p>
             )}
         </div>
     );
